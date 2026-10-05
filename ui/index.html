@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mendeley Converter — UI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="nav">
+      <div class="nav-inner">
+        <div class="logo">📚</div>
+        <div class="nav-title">Mendeley Converter</div>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="hero-grid">
+        <div class="hero-col">
+          <h1 class="title">Convert IEEE-style citations into Mendeley Cite v3 DOCX</h1>
+          <p class="subtitle">Upload your Word document and BibTeX file. The converter will replace manual [n] citations with genuine Mendeley Cite v3 content controls while preserving formatting.</p>
+
+          <form id="uploadForm" class="upload" action="#" method="post" enctype="multipart/form-data">
+            <div class="field">
+              <label class="field-label">Word document</label>
+              <input class="file-input" type="file" name="docx" accept=".docx" required>
+            </div>
+
+            <div class="field">
+              <label class="field-label">BibTeX file</label>
+              <input class="file-input" type="file" name="bib" accept=".bib" required>
+            </div>
+
+            <div class="controls">
+              <button class="btn primary" type="submit">Convert to Mendeley DOCX</button>
+              <button class="btn ghost" type="button" id="exampleBtn">Try sample</button>
+            </div>
+
+            <div id="status" class="status"></div>
+          </form>
+        </div>
+
+        <aside class="hero-col panel preview">
+          <h3 class="panel-title">Preview & Notes</h3>
+          <p class="muted">• Keeps original document layout, styles and images.</p>
+          <p class="muted">• Inserts Mendeley Cite v3 content controls with Base64 CSL JSON.</p>
+          <div class="example">
+            <pre>[1], [3]–[5]</pre>
+            <small class="muted">Clusters like the above become a single citation control.</small>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="footer-inner">Light theme inspired by makro.framer.website • © Your Team</div>
+    </footer>
+  </main>
+
+<script>
+const form = document.getElementById('uploadForm');
+const status = document.getElementById('status');
+const exampleBtn = document.getElementById('exampleBtn');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  status.textContent = 'Uploading...';
+  const data = new FormData(form);
+
+  try {
+    // Choose endpoint: local Flask uses /convert, Vercel deployment uses /api/convert
+    const endpoint = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? '/convert' : '/api/convert';
+    const resp = await fetch(endpoint, { method: 'POST', body: data });
+    if (!resp.ok) {
+      const j = await resp.json().catch(()=>({message:'Server error'}));
+      status.textContent = 'Error: ' + (j.error || j.message || resp.statusText);
+      return;
+    }
+
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'paper_mendeley.docx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    status.textContent = 'Done — download should start.';
+  } catch (err) {
+    status.textContent = 'Upload failed: ' + err.message;
+  }
+});
+
+exampleBtn.addEventListener('click', () => {
+  alert('Use the local Streamlit UI or upload your files here to convert.');
+});
+</script>
+</body>
+</html>

@@ -1,10 +1,18 @@
 from flask import Flask, jsonify, request, send_file, render_template_string
 import io
 from io import BytesIO
+from flask_cors import CORS
+
+# ensure project root is on sys.path when running this script directly
+import sys, os
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
 from mendeley_core import analyze_uploaded_documents, convert_docx_to_mendeley
 
 app = Flask(__name__)
+CORS(app)
 
 
 INDEX_HTML = """

@@ -7,3 +7,4 @@ google-genai
 groq
 lxml
 Flask
+flask-cors

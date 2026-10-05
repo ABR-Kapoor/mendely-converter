@@ -77,22 +77,17 @@
         status.style.color = isError ? '#c53030' : '';
       }
 
-      function defaultApi(){
-        // If running on localhost, assume local API; otherwise try relative /api/convert
+      function defaultApiCandidates(){
+        const candidates = [];
+        // local dev helper
         if(location.hostname === 'localhost' || location.hostname === '127.0.0.1'){
-          return 'http://localhost:8000/convert';
+          candidates.push('http://localhost:8000/convert');
         }
-        return '/api/convert';
-      }
-
-      async function endpointReachable(url){
-        try{
-          const res = await fetch(url, {method: 'HEAD'});
-          if(res.status === 404) return false;
-          return true;
-        }catch(e){
-          return false;
-        }
+        // same origin path (if UI served from same repo)
+        candidates.push(window.location.origin + '/api/convert');
+        // known production backend (user-provided)
+        candidates.push('https://mendely-converter.vercel.app/api/convert');
+        return candidates;
       }
 
       form.addEventListener('submit', async (ev)=>{
@@ -103,23 +98,29 @@
         const bib = form.querySelector('input[name="bib"]').files[0];
         if(!docx || !bib){ setStatus('Please select both files.', true); return; }
 
-        let apiUrl = (apiInput && apiInput.value) ? apiInput.value.trim() : defaultApi();
-        setStatus('Checking API endpoint: ' + apiUrl);
-        const ok = await endpointReachable(apiUrl);
-        if(!ok){ setStatus('API not reachable at ' + apiUrl + ' (404). Update the API URL or deploy the server.', true); return; }
+        let provided = (apiInput && apiInput.value) ? apiInput.value.trim() : '';
+        let candidates = provided ? [provided] : defaultApiCandidates();
+        setStatus('Attempting upload to candidate endpoints...');
 
         const btn = form.querySelector('button[type=submit]');
         btn.disabled = true; btn.textContent = 'Converting…';
 
         try{
           const fd = new FormData(); fd.append('docx', docx); fd.append('bib', bib);
-          const resp = await fetch(apiUrl, { method: 'POST', body: fd });
-          if(!resp.ok){
-            let txt;
-            try{ txt = await resp.text(); }catch(e){ txt = resp.statusText; }
-            setStatus('Server error: ' + (txt || resp.status), true);
-            return;
+          let resp = null;
+          let usedUrl = null;
+          for(const candidate of candidates){
+            setStatus('Trying ' + candidate + ' ...');
+            try{
+              resp = await fetch(candidate, { method: 'POST', body: fd });
+            }catch(err){
+              // network error, try next
+              resp = null;
+            }
+            if(resp && resp.status === 404){ resp = null; }
+            if(resp) { usedUrl = candidate; break; }
           }
+          if(!resp){ setStatus('All endpoints failed. Paste your working API URL into Advanced → API URL.', true); return; }
 
           const blob = await resp.blob();
           // filename from header or fallback

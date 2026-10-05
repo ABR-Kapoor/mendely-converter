@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request, send_file, render_template_string
+import io
 from io import BytesIO
 
 from mendeley_core import analyze_uploaded_documents, convert_docx_to_mendeley

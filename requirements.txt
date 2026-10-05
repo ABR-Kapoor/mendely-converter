@@ -1,0 +1,8 @@
+streamlit
+python-docx
+bibtexparser
+rapidfuzz
+python-dotenv
+google-genai
+groq
+lxml
